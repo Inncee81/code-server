@@ -1,12 +1,11 @@
-import { getOptions, Options } from "../../common/util"
+import { getOptions, CoderOptions } from "../../common/util"
 import "../register"
-
-// TODO@jsjoeio: Add proper types.
-type FixMeLater = any
 
 // NOTE@jsjoeio
 // This lives here ../../../lib/vscode/src/vs/base/common/platform.ts#L106
 export const nlsConfigElementId = "vscode-remote-nls-configuration"
+
+type LoadBundleCallback = (_: undefined, result?: string) => void
 
 type NlsConfiguration = {
   locale: string
@@ -17,7 +16,7 @@ type NlsConfiguration = {
   _resolvedLanguagePackCoreLocation?: string
   _corruptedFile?: string
   _languagePackSupport?: boolean
-  loadBundle?: FixMeLater
+  loadBundle?: (bundle: string, _language: string, cb: LoadBundleCallback) => void
 }
 
 /**
@@ -70,8 +69,6 @@ export function getNlsConfiguration(_document: Document, base: string) {
       [key: string]: string
     } = Object.create(null)
 
-    type LoadBundleCallback = (_: undefined, result?: string) => void
-
     nlsConfig.loadBundle = (bundle: string, _language: string, cb: LoadBundleCallback): void => {
       const result = bundles[bundle]
       if (result) {
@@ -94,7 +91,7 @@ export function getNlsConfiguration(_document: Document, base: string) {
 
 type GetLoaderParams = {
   nlsConfig: NlsConfiguration
-  options: Options
+  options: CoderOptions
   _window: Window
 }
 
@@ -106,7 +103,7 @@ type Loader = {
   baseUrl: string
   recordStats: boolean
   // TODO@jsjoeio: There don't appear to be any types for trustedTypes yet.
-  trustedTypesPolicy: FixMeLater
+  trustedTypesPolicy: TrustedTypePolicy | undefined
   paths: {
     [key: string]: string
   }
@@ -136,15 +133,17 @@ export function _createScriptURL(value: string, origin: string): string {
  * it's easier to test.
  **/
 export function getConfigurationForLoader({ nlsConfig, options, _window }: GetLoaderParams) {
+  const trustedPolicyOptions: TrustedTypePolicyOptions = {
+    createScriptURL(value: string): string {
+      return _createScriptURL(value, window.location.origin)
+    },
+  }
+
   const loader: Loader = {
     // Without the full URL VS Code will try to load file://.
     baseUrl: `${window.location.origin}${options.csStaticBase}/lib/vscode/out`,
     recordStats: true,
-    trustedTypesPolicy: (_window as FixMeLater).trustedTypes?.createPolicy("amdLoader", {
-      createScriptURL(value: string): string {
-        return _createScriptURL(value, window.location.origin)
-      },
-    }),
+    trustedTypesPolicy: window.trustedTypes?.createPolicy("amdLoader", trustedPolicyOptions),
     paths: {
       "vscode-textmate": `../node_modules/vscode-textmate/release/main`,
       "vscode-oniguruma": `../node_modules/vscode-oniguruma/release/main`,

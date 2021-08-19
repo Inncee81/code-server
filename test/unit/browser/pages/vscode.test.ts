@@ -243,11 +243,7 @@ describe("vscode", () => {
       })
     })
     it("should return a loader object with trustedTypesPolicy", () => {
-      interface PolicyOptions {
-        createScriptUrl: (url: string) => string
-      }
-
-      function mockCreatePolicy(policyName: string, options: PolicyOptions) {
+      function mockCreatePolicy(policyName: string, options: TrustedTypePolicyOptions) {
         return {
           name: policyName,
           ...options,
@@ -256,9 +252,8 @@ describe("vscode", () => {
 
       const mockFn = jest.fn(mockCreatePolicy)
 
-      // @ts-expect-error we are adding a custom property to window
-      _window.trustedTypes = {
-        createPolicy: mockFn,
+      _window.trustedTypes = <TrustedTypePolicyFactory>{
+        createPolicy: mockFn as TrustedTypePolicyFactory["createPolicy"],
       }
 
       const options = {
@@ -279,7 +274,7 @@ describe("vscode", () => {
       })
 
       expect(loader.trustedTypesPolicy).not.toBe(undefined)
-      expect(loader.trustedTypesPolicy.name).toBe("amdLoader")
+      expect(loader.trustedTypesPolicy!.name).toBe("amdLoader")
     })
   })
   describe("_createScriptURL", () => {

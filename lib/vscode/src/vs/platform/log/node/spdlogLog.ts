@@ -15,6 +15,7 @@ async function createSpdLogLogger(name: string, logfilePath: string, filesize: n
 		return _spdlog.createAsyncRotatingLogger(name, logfilePath, filesize, filecount);
 	} catch (e) {
 		console.error(e);
+		console.error('generic log failure');
 	}
 	return null;
 }
